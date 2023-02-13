@@ -114,9 +114,9 @@ def lambda_handler(event, context):
         human_input=human_input
     )
     # send the response back to the user phone number
-    # send_twilio_response(to=phone_number, body=model_response)
+    send_twilio_response(to=phone_number, body=model_response)
 
     # uncomment to use the twilio webhook response format
-    return f"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"\
-           f"<Response><Message><Body>{model_response}</Body></Message></Response>"
+    # return f"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"\
+    #        f"<Response><Message><Body>{model_response}</Body></Message></Response>"
 
