@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  The API and Lambda function for the AI Assistant to respond to SMS messages
+
+Parameters:
+  Environment:
+    Type: String
+    Default: sandbox
+  TwilioPhoneNumber:
+    Type: String
+    Default: +18446037222
+  SuperpoweredModelId:
+    Type: String
+    Default: 6c7afaa3-0dce-408a-81e0-7ed81bd7de88
+
+Resources:
+  #######################################
+  #                 API                 #
+  #######################################
+  ReceiveWebhooksApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Environment
+
+  #######################################
+  #        RESPOND TO SMS LAMBDA        #
+  #######################################
+  RespondToSmsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: respond.lambda_handler
+      Runtime: python3.9
+      CodeUri: src/
+      Timeout: 30
+      Environment:
+        Variables:
+          TWILIO_ACCOUNT_SID_PARAM_NAME: twilio-account-sid
+          TWILIO_AUTH_TOKEN_PARAM_NAME: twilio-auth-token
+          TWILIO_PHONE_NUMBER: !Ref TwilioPhoneNumber
+          PHONE_NUMBER_TO_INSTANCE_ID_MAP_TABLE_NAME: !Ref PhoneNumberToInstanceIdMap
+          SP_MODEL_ID: !Ref SuperpoweredModelId
+          SP_API_KEY_ID_PARAM_NAME: sp-sms-demo-api-key-id
+          SP_API_KEY_SECRET_PARAM_NAME: sp-sms-demo-api-key-secret
+      Events:
+        ApiTrigger:
+          Type: Api
+          Properties:
+            Path: /respond
+            Method: post
+            RestApiId: !Ref ReceiveWebhooksApi
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref PhoneNumberToInstanceIdMap
+        - DynamoDBWritePolicy:
+            TableName: !Ref PhoneNumberToInstanceIdMap
+        - SSMParameterReadPolicy:
+            ParameterName: twilio-account-sid
+        - SSMParameterReadPolicy:
+            ParameterName: twilio-auth-token
+        - SSMParameterReadPolicy:
+            ParameterName: sp-sms-demo-api-key-id
+        - SSMParameterReadPolicy:
+            ParameterName: sp-sms-demo-api-key-secret
+
+  #######################################
+  #   PHONE NUMBER TO INSTANCE_ID MAP   #
+  #######################################
+  PhoneNumberToInstanceIdMap:
+    Type: AWS::Serverless::SimpleTable
+    DeletionPolicy: Retain
+    Properties:
+      PrimaryKey:
+        Name: phone_number
+        Type: String
+
+Outputs:
+  WebhookUrl:
+    Description: URL for application
+    Value: !Sub "https://${ReceiveWebhooksApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/respond"
