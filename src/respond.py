@@ -46,13 +46,14 @@ SP_API_KEY_SECRET = ssm.get_parameter(
 
 encoded_token = base64.b64encode(bytes(f'{SP_API_KEY_ID}:{SP_API_KEY_SECRET}', 'utf-8')).decode('utf-8')
 HEADERS = {'Authorization': f'Bearer {encoded_token}'}
-print(HEADERS)
+BASE_URL = 'https://2hsbtjui63.execute-api.us-west-1.amazonaws.com/sandbox'
+
 
 def create_superpowered_model_instance(phone_number: str) -> str:
     # create the model instance
     resp = HTTP.request(
         'POST',
-        f'https://58shnvgnlf.execute-api.us-east-1.amazonaws.com/sandbox/models/{SP_MODEL_ID}/instances',
+        f'{BASE_URL}/models/{SP_MODEL_ID}/instances',
         headers=HEADERS,
         body=json.dumps({'supp_id': phone_number})
     )
@@ -67,7 +68,7 @@ def get_response_from_superpowered_model(instance_id: str, human_input: dict) ->
     # get the response from the model
     resp = HTTP.request(
         'POST',
-        f'https://58shnvgnlf.execute-api.us-east-1.amazonaws.com/sandbox/models/{SP_MODEL_ID}/instances/{instance_id}/get_response',
+        f'{BASE_URL}/models/{SP_MODEL_ID}/instances/{instance_id}/get_response',
         headers=HEADERS,
         body=json.dumps({'human_input': human_input})
     )
@@ -79,7 +80,7 @@ def get_response_from_superpowered_model(instance_id: str, human_input: dict) ->
 
 
 def send_twilio_response(to: str, body: str):
-    TWILIO_CLIENT.messages.create(
+    return TWILIO_CLIENT.messages.create(
         to=to,
         from_=TWILIO_PHONE_NUMBER,
         body=body
@@ -113,9 +114,11 @@ def lambda_handler(event, context):
         instance_id=instance_id, 
         human_input=human_input
     )
+    print(model_response)
     # send the response back to the user phone number
-    send_twilio_response(to=phone_number, body=model_response)
+    resp = send_twilio_response(to=phone_number, body=model_response)
 
+    print(resp)
     # uncomment to use the twilio webhook response format
     # return f"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"\
     #        f"<Response><Message><Body>{model_response}</Body></Message></Response>"
