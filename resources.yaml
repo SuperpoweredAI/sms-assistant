@@ -12,7 +12,7 @@ Parameters:
     Default: +18446037222
   SuperpoweredModelId:
     Type: String
-    Default: 6c7afaa3-0dce-408a-81e0-7ed81bd7de88
+    Default: d182e31e-399b-4897-a529-f922c0373601
 
 Resources:
   #######################################
