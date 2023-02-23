@@ -46,7 +46,7 @@ SP_API_KEY_SECRET = ssm.get_parameter(
 
 encoded_token = base64.b64encode(bytes(f'{SP_API_KEY_ID}:{SP_API_KEY_SECRET}', 'utf-8')).decode('utf-8')
 HEADERS = {'Authorization': f'Bearer {encoded_token}'}
-BASE_URL = 'https://2hsbtjui63.execute-api.us-west-1.amazonaws.com/sandbox'
+BASE_URL = 'https://api.superpowered-qa.com/'
 
 
 def create_superpowered_model_instance(phone_number: str) -> str:

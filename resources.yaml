@@ -32,7 +32,7 @@ Resources:
       Handler: respond.lambda_handler
       Runtime: python3.9
       CodeUri: src/
-      Timeout: 30
+      Timeout: 29
       Environment:
         Variables:
           TWILIO_ACCOUNT_SID_PARAM_NAME: twilio-account-sid
