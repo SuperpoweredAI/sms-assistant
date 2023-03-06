@@ -6,38 +6,41 @@ Description: >
 Parameters:
   Environment:
     Type: String
-    Default: sandbox
-  TwilioPhoneNumber:
-    Type: String
-    Default: +18446037222
   SuperpoweredModelId:
     Type: String
     Default: d182e31e-399b-4897-a529-f922c0373601
+  AiName:
+    Type: String
+    Default: Alfred
+
+Globals:
+  Function:
+    Runtime: python3.9
+    Timeout: 29
+
 
 Resources:
   #######################################
-  #                 API                 #
+  # API 
   #######################################
   ReceiveWebhooksApi:
     Type: AWS::Serverless::Api
     Properties:
+      Description: API for receiving webhooks from Twilio
       StageName: !Ref Environment
 
   #######################################
-  #        RESPOND TO SMS LAMBDA        #
+  # RESPOND TO SMS LAMBDA
   #######################################
   RespondToSmsLambda:
     Type: AWS::Serverless::Function
     Properties:
       Handler: respond.lambda_handler
-      Runtime: python3.9
-      CodeUri: src/
-      Timeout: 29
+      CodeUri: src/incoming_sms_handler/
       Environment:
         Variables:
           TWILIO_ACCOUNT_SID_PARAM_NAME: twilio-account-sid
           TWILIO_AUTH_TOKEN_PARAM_NAME: twilio-auth-token
-          TWILIO_PHONE_NUMBER: !Ref TwilioPhoneNumber
           PHONE_NUMBER_TO_INSTANCE_ID_MAP_TABLE_NAME: !Ref PhoneNumberToInstanceIdMap
           SP_MODEL_ID: !Ref SuperpoweredModelId
           SP_API_KEY_ID_PARAM_NAME: sp-sms-demo-api-key-id
@@ -64,17 +67,70 @@ Resources:
             ParameterName: sp-sms-demo-api-key-secret
 
   #######################################
-  #   PHONE NUMBER TO INSTANCE_ID MAP   #
+  # PHONE NUMBER TO INSTANCE_ID MAP 
   #######################################
   PhoneNumberToInstanceIdMap:
     Type: AWS::Serverless::SimpleTable
-    DeletionPolicy: Retain
     Properties:
       PrimaryKey:
         Name: phone_number
         Type: String
 
+  #######################################
+  # TWILIO PHONE NUMBER CUSTOM RESOURCE 
+  #######################################
+  TwilioCustomResourceHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: create_phone_number.lambda_handler
+      CodeUri: src/twilio_phone_number_creation/
+      Environment:
+        Variables:
+          TWILIO_ACCOUNT_SID_PARAM_NAME: twilio-account-sid
+          TWILIO_AUTH_TOKEN_PARAM_NAME: twilio-auth-token
+      Policies:
+        - SSMParameterReadPolicy:
+            ParameterName: twilio-account-sid
+        - SSMParameterReadPolicy:
+            ParameterName: twilio-auth-token
+
+  TwilioPhoneNumber:
+    Type: Custom::TwilioPhoneNumber
+    Properties:
+      ServiceToken: !GetAtt TwilioCustomResourceHandler.Arn
+      WebhookUrl: !Sub "https://${ReceiveWebhooksApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/respond"
+
+  # #######################################
+  # # SUPERPOWERED AI MODEL RESOURCE
+  # #######################################
+  # SuperpoweredModelResourceHandler:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     Handler: create_model_resources.lambda_handler
+  #     CodeUri: src/superpowered_model_creation/
+  #     Environment:
+  #       Variables:
+  #         SP_API_KEY_ID_PARAM_NAME: sp-sms-demo-api-key-id
+  #         SP_API_KEY_SECRET_PARAM_NAME: sp-sms-demo-api-key-secret
+  #     Policies:
+  #       - SSMParameterReadPolicy:
+  #           ParameterName: sp-sms-demo-api-key-id
+  #       - SSMParameterReadPolicy:
+  #           ParameterName: sp-sms-demo-api-key-secret
+
+  # SuperpoweredModel:
+  #   Type: Custom::SuperpoweredModel
+  #   Properties:
+  #     ServiceToken: !GetAtt SuperpoweredModelResourceHandler.Arn
+  #     Incantations:
+  #       - title: extensive-knowledge
+  #         text: You have been trained on the entire internet and every book that has ever been written, so you have extensive knowledge on a wide variety of topics
+  #       - title: 
+  #     ModelSpec:
+  #       ai_name: Alfred
+
+
 Outputs:
-  WebhookUrl:
-    Description: URL for application
-    Value: !Sub "https://${ReceiveWebhooksApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/respond"
+  AiPhoneNumber:
+    Description: The phone number for the AI Assistant
+    Value: !GetAtt TwilioPhoneNumber.PhoneNumber
