@@ -1,19 +1,17 @@
 # twilio documentation about webhooks: https://www.twilio.com/docs/messaging/guides/webhook-request
-from __future__ import print_function
-
 import base64
 import boto3
 import json
 import os
+import urllib
 import urllib3  # lambda doesn't have the requests module by default, so we'll just use urllib3
 from urllib.parse import parse_qs
 
 from twilio.rest import Client
+from twilio.request_validator import RequestValidator
 
 
 HTTP = urllib3.PoolManager()
-
-TWILIO_PHONE_NUMBER = os.environ['TWILIO_PHONE_NUMBER']
 SP_MODEL_ID = os.environ['SP_MODEL_ID']
 
 dynamodb = boto3.resource('dynamodb')
@@ -79,35 +77,51 @@ def get_response_from_superpowered_model(instance_id: str, human_input: dict) ->
     return json.loads(resp.data)['model_response']['content']
 
 
-def send_twilio_response(to: str, body: str):
+def send_twilio_response(to: str, from_: str, body: str):
     return TWILIO_CLIENT.messages.create(
         to=to,
-        from_=TWILIO_PHONE_NUMBER,
+        from_=from_,
         body=body
     )
 
 
 def lambda_handler(event, context):
     print(event)
-    # decode twilio webhook
+    ############################
+    # WEBHOOK VALIDATION
+    ############################
+    validator = RequestValidator(TWILIO_AUTH_TOKEN)
     twilio_webhook = parse_qs(event['body'])
+    twilio_webhook = {k: twilio_webhook[k][0] for k in sorted(twilio_webhook)}
+    # del twilio_webhook['ApiVersion']
+    # del twilio_webhook['SmsMessageSid']
+    # del twilio_webhook['NumSegments']
+
+    # url = f"https://{event['headers']['Host']}{event['requestContext']['path']}"
+    # print(twilio_webhook)
+    # print(url)
+    # print(event['headers'].get('X-Twilio-Signature'))
+    # if not validator.validate(uri=url, params=twilio_webhook, signature=event['headers'].get('X-Twilio-Signature')):
+    #     raise Exception('Twilio webhook validation failed')
+    # decode twilio webhook
     print(twilio_webhook)
     # get the phone number from the webhook
-    phone_number = twilio_webhook['From'][0]
+    user_phone_number = twilio_webhook['From']
+    twilio_phone_number = twilio_webhook['To']
     # get the instance id from the phone number
-    db_resp = ddb_table.get_item(Key={'phone_number': phone_number})
+    db_resp = ddb_table.get_item(Key={'phone_number': user_phone_number})
     if not db_resp.get('Item'):
         # create the model instance
-        instance_id = create_superpowered_model_instance(phone_number)
+        instance_id = create_superpowered_model_instance(user_phone_number)
         # save the phone number / instance id mapping to dynamodb
-        ddb_table.put_item(Item={'phone_number': phone_number, 'instance_id': instance_id})
+        ddb_table.put_item(Item={'phone_number': user_phone_number, 'instance_id': instance_id})
     else:
         instance_id = db_resp['Item']['instance_id']
     
     # get the human input from the sms message and prepare for input to superpowered API /get_response endpoint
     human_input = {
-        'prefix': phone_number,
-        'content': twilio_webhook['Body'][0]
+        'prefix': user_phone_number,
+        'content': twilio_webhook['Body']
     }
     # get the response from the model
     model_response = get_response_from_superpowered_model(
@@ -116,7 +130,11 @@ def lambda_handler(event, context):
     )
     print(model_response)
     # send the response back to the user phone number
-    resp = send_twilio_response(to=phone_number, body=model_response)
+    resp = send_twilio_response(
+        to=user_phone_number,
+        from_=twilio_phone_number,
+        body=model_response
+    )
 
     print(resp)
     # uncomment to use the twilio webhook response format
