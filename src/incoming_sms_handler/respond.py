@@ -62,13 +62,13 @@ def create_superpowered_model_instance(phone_number: str) -> str:
     return json.loads(resp.data)['id']
 
 
-def get_response_from_superpowered_model(instance_id: str, human_input: dict) -> str:
+def get_response_from_superpowered_model(instance_id: str, input: dict) -> str:
     # get the response from the model
     resp = HTTP.request(
         'POST',
         f'{BASE_URL}/models/{SP_MODEL_ID}/instances/{instance_id}/get_response',
         headers=HEADERS,
-        body=json.dumps({'human_input': human_input})
+        body=json.dumps({'input': input})
     )
     if not resp.status == 200:
         raise Exception(f'Error getting response from model: {resp.data}')
@@ -119,14 +119,14 @@ def lambda_handler(event, context):
         instance_id = db_resp['Item']['instance_id']
     
     # get the human input from the sms message and prepare for input to superpowered API /get_response endpoint
-    human_input = {
+    input = {
         'prefix': user_phone_number,
         'content': twilio_webhook['Body']
     }
     # get the response from the model
     model_response = get_response_from_superpowered_model(
         instance_id=instance_id, 
-        human_input=human_input
+        input=input
     )
     print(model_response)
     # send the response back to the user phone number

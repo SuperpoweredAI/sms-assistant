@@ -1,6 +1,6 @@
 set -e
 
-sam build -t resources.yaml
+sam build -t resources.yaml --use-container
 
 sam deploy \
     --stack-name sms-assistant-demo-1 \
