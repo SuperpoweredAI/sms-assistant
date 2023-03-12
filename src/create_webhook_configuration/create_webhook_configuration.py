@@ -22,7 +22,6 @@ def lambda_handler(event, context):
     # Handle everything else in try/except
     ############################
     try:
-
         ############################
         # Get secrets from SSM
         ############################
@@ -40,46 +39,25 @@ def lambda_handler(event, context):
         TWILIO_CLIENT = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
         webhook_url = new_props['WebhookUrl']
+        twilio_phone_number = new_props['TwilioPhoneNumber']
 
         ############################
         # Handle the event
         ############################
         # CREATE
-        if event_type == 'Create':
-            ############################
-            # buy the phone number
-            ############################
-            new_number = TWILIO_CLIENT.incoming_phone_numbers.create(
-                area_code='415',
-                friendly_name=unique_id,
-                sms_url=webhook_url,
-                sms_method='POST'
-            )
-            print(new_number.__dict__)
-            response_data['PhoneNumber'] = new_number.phone_number
-        # UPDATE or DELETE
-        else:
+        if event_type == 'Create' or event_type == 'Update':
             ############################
             # find the phone number by the unique id
             ############################
-            all_numbers = TWILIO_CLIENT.incoming_phone_numbers.list(friendly_name=unique_id, limit=2)
+            all_numbers = TWILIO_CLIENT.incoming_phone_numbers.list(phone_number=twilio_phone_number)
             assert len(all_numbers) == 1
             sid = all_numbers[0].sid
-            # UPDATE
-            if event_type == 'Update':
-                ############################
-                # update the sms url
-                ############################
-                updated_number = TWILIO_CLIENT.incoming_phone_numbers(sid).update(sms_url=webhook_url)
-                print(updated_number.__dict__)
-                response_data['PhoneNumber'] = updated_number.phone_number
-            # DELETE
-            elif event_type == 'Delete':
-                ############################
-                # delete the phone number
-                ############################
-                TWILIO_CLIENT.incoming_phone_numbers(sid).delete()
 
+            ############################
+            # update the sms webhook url
+            ############################
+            updated_number = TWILIO_CLIENT.incoming_phone_numbers(sid).update(sms_url=webhook_url)
+            print(updated_number.__dict__)
 
         ############################
         # Send a successful response

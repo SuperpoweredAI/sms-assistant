@@ -44,7 +44,7 @@ SP_API_KEY_SECRET = ssm.get_parameter(
 
 encoded_token = base64.b64encode(bytes(f'{SP_API_KEY_ID}:{SP_API_KEY_SECRET}', 'utf-8')).decode('utf-8')
 HEADERS = {'Authorization': f'Bearer {encoded_token}'}
-BASE_URL = 'https://api.superpowered-qa.com/v1'
+BASE_URL = 'https://api.superpowered.ai/v1'
 
 
 def create_superpowered_model_instance(phone_number: str) -> str:
@@ -71,6 +71,7 @@ def get_response_from_superpowered_model(instance_id: str, input: dict) -> str:
         body=json.dumps({'input': input})
     )
     if not resp.status == 200:
+        print(resp.status)
         raise Exception(f'Error getting response from model: {resp.data}')
 
     # get the response from the response
@@ -137,7 +138,4 @@ def lambda_handler(event, context):
     )
 
     print(resp)
-    # uncomment to use the twilio webhook response format
-    # return f"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"\
-    #        f"<Response><Message><Body>{model_response}</Body></Message></Response>"
 

@@ -8,7 +8,9 @@ Parameters:
     Type: String
   SuperpoweredModelId:
     Type: String
-    Default: d182e31e-399b-4897-a529-f922c0373601
+  TwilioPhoneNumber:
+    Type: String
+    Default: '+18446037222'
   AiName:
     Type: String
     Default: Alfred
@@ -35,6 +37,7 @@ Resources:
   RespondToSmsLambda:
     Type: AWS::Serverless::Function
     Properties:
+      Description: Lambda function to respond to incoming SMS messages
       Handler: respond.lambda_handler
       CodeUri: src/incoming_sms_handler/
       Environment:
@@ -77,13 +80,13 @@ Resources:
         Type: String
 
   #######################################
-  # TWILIO PHONE NUMBER CUSTOM RESOURCE 
+  # TWILIO WEBHOOK CONFIG CUSTOM RESOURCE 
   #######################################
   TwilioCustomResourceHandler:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: create_phone_number.lambda_handler
-      CodeUri: src/twilio_phone_number_creation/
+      Handler: create_webhook_configuration.lambda_handler
+      CodeUri: src/create_webhook_configuration/
       Environment:
         Variables:
           TWILIO_ACCOUNT_SID_PARAM_NAME: twilio-account-sid
@@ -94,11 +97,12 @@ Resources:
         - SSMParameterReadPolicy:
             ParameterName: twilio-auth-token
 
-  TwilioPhoneNumber:
+  ConnectTwilioWebhookToApi:
     Type: Custom::TwilioPhoneNumber
     Properties:
       ServiceToken: !GetAtt TwilioCustomResourceHandler.Arn
       WebhookUrl: !Sub "https://${ReceiveWebhooksApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/respond"
+      TwilioPhoneNumber: !Ref TwilioPhoneNumber
 
   # #######################################
   # # SUPERPOWERED AI MODEL RESOURCE
@@ -128,9 +132,3 @@ Resources:
   #       - title: 
   #     ModelSpec:
   #       ai_name: Alfred
-
-
-Outputs:
-  AiPhoneNumber:
-    Description: The phone number for the AI Assistant
-    Value: !GetAtt TwilioPhoneNumber.PhoneNumber
