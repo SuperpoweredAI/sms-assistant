@@ -14,7 +14,9 @@ Feel free to text 844-603-7222 to interact with an AI assistant we've created fr
 
 To get more familiar with the key concepts behind Superpowered, please visit our docs: https://superpoweredai.notion.site/
 
-Take a look at our [API Reference](!https://superpowered.ai/docs)
+Take a look at our API Reference: https://superpowered.ai/docs
+
+
 
 ### High-level overview
 
@@ -31,6 +33,7 @@ The following resources will be created from `resources.yaml`
 - An API Gateway that will be how we can receive webhooks when new messages are sent to you Twilio phone number.
 - A simple key/value database table that maps phone numbers to model instances. This will ensure that each phone number is associated with its own chat history.
 - A Lambda function (triggered by a webhook sent to an API Gateway endpoint) that will take the incoming message and use the Superpowered.ai API `/models/{model_id}/instances/{instance_id}/get_response` endpoint to get an AI response to the message a user sent to your Twilio number.
+- A custom resource that will automatically set up webhooks so text messages sent to your Twilio number will trigger the API Gateway + Lambda endpoint.
 
 Things you'll need to do before you can deploy your AI SMS Assistant:
 
@@ -87,6 +90,8 @@ sam deploy \
         ParameterKey=SpApiKeySecretParamName,ParameterValue=sp-sms-demo-api-key-secret \
         ParameterKey=AiName,ParameterValue=Alfred
 ```
+
+
 
 ### Extending The SMS AI Assistant
 
