@@ -87,29 +87,32 @@ def send_twilio_response(to: str, from_: str, body: str):
 
 
 def lambda_handler(event, context):
-    print(event)
     ############################
     # WEBHOOK VALIDATION
     ############################
     validator = RequestValidator(TWILIO_AUTH_TOKEN)
-    twilio_webhook = parse_qs(event['body'])
-    twilio_webhook = {k: twilio_webhook[k][0] for k in sorted(twilio_webhook)}
-    # del twilio_webhook['ApiVersion']
-    # del twilio_webhook['SmsMessageSid']
-    # del twilio_webhook['NumSegments']
 
-    # url = f"https://{event['headers']['Host']}{event['requestContext']['path']}"
-    # print(twilio_webhook)
-    # print(url)
-    # print(event['headers'].get('X-Twilio-Signature'))
-    # if not validator.validate(uri=url, params=twilio_webhook, signature=event['headers'].get('X-Twilio-Signature')):
-    #     raise Exception('Twilio webhook validation failed')
-    # decode twilio webhook
-    print(twilio_webhook)
+    # parse the event body but make sure to keep empty values for webhook validation
+    twilio_webhook = parse_qs(event['body'], keep_blank_values=True)
+    twilio_webhook = {k: v[0] for k, v in twilio_webhook.items()}
+
+    # webhook url is the url that twilio will send the webhook to (i.e. the url of this lambda function)
+    url = f"https://{event['headers']['Host']}{event['requestContext']['path']}"
+
+    if not validator.validate(uri=url, params=twilio_webhook, signature=event['headers'].get('X-Twilio-Signature')):
+        raise Exception('Twilio webhook validation failed')
+    
+    ############################
+    # WEBHOOK HANDLING
+    ############################
     # get the phone number from the webhook
     user_phone_number = twilio_webhook['From']
     twilio_phone_number = twilio_webhook['To']
+
     # get the instance id from the phone number
+    ############################
+    # GET OR CREATE MODEL INSTANCE FROM DYNAMODB
+    ############################
     db_resp = ddb_table.get_item(Key={'phone_number': user_phone_number})
     if not db_resp.get('Item'):
         # create the model instance
@@ -124,12 +127,15 @@ def lambda_handler(event, context):
         'prefix': user_phone_number,
         'content': twilio_webhook['Body']
     }
+    ############################
+    # GET API RESPONSE FROM SUPERPOWERED API
+    ############################
     # get the response from the model
     model_response = get_response_from_superpowered_model(
         instance_id=instance_id, 
         input=input
     )
-    print(model_response)
+
     # send the response back to the user phone number
     resp = send_twilio_response(
         to=user_phone_number,
@@ -137,5 +143,8 @@ def lambda_handler(event, context):
         body=model_response
     )
 
-    print(resp)
+    return {
+        'statusCode': 200,
+        'body': json.dumps('OK')
+    }
 
