@@ -13,6 +13,14 @@ Parameters:
   AiName:
     Type: String
     Default: Alfred
+  TwilioAccountSidParamName:
+    Type: String
+  TwilioAuthTokenParamName:
+    Type: String
+  SpApiKeyIdParamName:
+    Type: String
+  SpApiKeySecretParamName:
+    Type: String
   
 
 Globals:
@@ -42,12 +50,12 @@ Resources:
       CodeUri: src/incoming_sms_handler/
       Environment:
         Variables:
-          TWILIO_ACCOUNT_SID_PARAM_NAME: twilio-account-sid
-          TWILIO_AUTH_TOKEN_PARAM_NAME: twilio-auth-token
+          TWILIO_ACCOUNT_SID_PARAM_NAME: !Ref TwilioAccountSidParamName
+          TWILIO_AUTH_TOKEN_PARAM_NAME: !Ref TwilioAuthTokenParamName
           PHONE_NUMBER_TO_INSTANCE_ID_MAP_TABLE_NAME: !Ref PhoneNumberToInstanceIdMap
           SP_MODEL_ID: !Ref SuperpoweredModelId
-          SP_API_KEY_ID_PARAM_NAME: sp-sms-demo-api-key-id
-          SP_API_KEY_SECRET_PARAM_NAME: sp-sms-demo-api-key-secret
+          SP_API_KEY_ID_PARAM_NAME: !Ref SpApiKeyIdParamName
+          SP_API_KEY_SECRET_PARAM_NAME: !Ref SpApiKeySecretParamName
       Events:
         ApiTrigger:
           Type: Api
@@ -62,13 +70,13 @@ Resources:
         - DynamoDBWritePolicy:
             TableName: !Ref PhoneNumberToInstanceIdMap
         - SSMParameterReadPolicy:
-            ParameterName: twilio-account-sid
+            ParameterName: !Ref TwilioAccountSidParamName
         - SSMParameterReadPolicy:
-            ParameterName: twilio-auth-token
+            ParameterName: !Ref TwilioAuthTokenParamName
         - SSMParameterReadPolicy:
-            ParameterName: sp-sms-demo-api-key-id
+            ParameterName: !Ref SpApiKeyIdParamName
         - SSMParameterReadPolicy:
-            ParameterName: sp-sms-demo-api-key-secret
+            ParameterName: !Ref SpApiKeySecretParamName
 
   #######################################
   # PHONE NUMBER TO INSTANCE_ID MAP 
@@ -90,13 +98,13 @@ Resources:
       CodeUri: src/create_webhook_configuration/
       Environment:
         Variables:
-          TWILIO_ACCOUNT_SID_PARAM_NAME: twilio-account-sid
-          TWILIO_AUTH_TOKEN_PARAM_NAME: twilio-auth-token
+          TWILIO_ACCOUNT_SID_PARAM_NAME: !Ref TwilioAccountSidParamName
+          TWILIO_AUTH_TOKEN_PARAM_NAME: !Ref TwilioAuthTokenParamName
       Policies:
         - SSMParameterReadPolicy:
-            ParameterName: twilio-account-sid
+            ParameterName: !Ref TwilioAccountSidParamName
         - SSMParameterReadPolicy:
-            ParameterName: twilio-auth-token
+            ParameterName: !Ref TwilioAuthTokenParamName
 
   TwilioWebhookConfiguration:
     Type: Custom::TwilioWebhookConfiguration
@@ -104,32 +112,3 @@ Resources:
       ServiceToken: !GetAtt TwilioCustomResourceHandler.Arn
       WebhookUrl: !Sub "https://${ReceiveWebhooksApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/respond"
       TwilioPhoneNumber: !Ref TwilioPhoneNumber
-
-  # #######################################
-  # # SUPERPOWERED AI MODEL RESOURCE
-  # #######################################
-  # SuperpoweredModelResourceHandler:
-  #   Type: AWS::Serverless::Function
-  #   Properties:
-  #     Handler: create_model_resources.lambda_handler
-  #     CodeUri: src/superpowered_model_creation/
-  #     Environment:
-  #       Variables:
-  #         SP_API_KEY_ID_PARAM_NAME: sp-sms-demo-api-key-id
-  #         SP_API_KEY_SECRET_PARAM_NAME: sp-sms-demo-api-key-secret
-  #     Policies:
-  #       - SSMParameterReadPolicy:
-  #           ParameterName: sp-sms-demo-api-key-id
-  #       - SSMParameterReadPolicy:
-  #           ParameterName: sp-sms-demo-api-key-secret
-
-  # SuperpoweredModel:
-  #   Type: Custom::SuperpoweredModel
-  #   Properties:
-  #     ServiceToken: !GetAtt SuperpoweredModelResourceHandler.Arn
-  #     Incantations:
-  #       - title: extensive-knowledge
-  #         text: You have been trained on the entire internet and every book that has ever been written, so you have extensive knowledge on a wide variety of topics
-  #       - title: 
-  #     ModelSpec:
-  #       ai_name: Alfred
