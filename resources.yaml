@@ -10,10 +10,10 @@ Parameters:
     Type: String
   TwilioPhoneNumber:
     Type: String
-    Default: '+18446037222'
   AiName:
     Type: String
     Default: Alfred
+  
 
 Globals:
   Function:
@@ -53,7 +53,8 @@ Resources:
           Type: Api
           Properties:
             Path: /respond
-            Method: post
+            # Method should match the TwilioWebhookConfiguration "HttpMethod"
+            Method: POST
             RestApiId: !Ref ReceiveWebhooksApi
       Policies:
         - DynamoDBReadPolicy:
@@ -97,8 +98,8 @@ Resources:
         - SSMParameterReadPolicy:
             ParameterName: twilio-auth-token
 
-  ConnectTwilioWebhookToApi:
-    Type: Custom::TwilioPhoneNumber
+  TwilioWebhookConfiguration:
+    Type: Custom::TwilioWebhookConfiguration
     Properties:
       ServiceToken: !GetAtt TwilioCustomResourceHandler.Arn
       WebhookUrl: !Sub "https://${ReceiveWebhooksApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/respond"
