@@ -43,14 +43,14 @@ SP_API_KEY_SECRET = ssm.get_parameter(
 )['Parameter']['Value']
 
 BASE_URL = 'https://api.superpowered.ai/v1'
-
+HEADERS = urllib3.make_headers(basic_auth=f'{SP_API_KEY_ID}:{SP_API_KEY_SECRET}')
 
 def create_superpowered_model_instance(phone_number: str) -> str:
     # create the model instance
     resp = HTTP.request(
         'POST',
         f'{BASE_URL}/models/{SP_MODEL_ID}/instances',
-        auth=(SP_API_KEY_ID, SP_API_KEY_SECRET),
+        headers=HEADERS,
         body=json.dumps({'supp_id': phone_number})
     )
     if not resp.status == 200:
@@ -64,8 +64,8 @@ def get_response_from_superpowered_model(instance_id: str, input: dict) -> str:
     # get the response from the model
     resp = HTTP.request(
         'POST',
-        f'{BASE_URL}/models/{SP_MODEL_ID}/instances/{instance_id}/get_response',
-        auth=(SP_API_KEY_ID, SP_API_KEY_SECRET),
+        f'{BASE_URL}/models/{SP_MODEL_ID}/instances/{instance_id}/generate',
+        headers=HEADERS,
         body=json.dumps({'input': input})
     )
     if not resp.status == 200:
