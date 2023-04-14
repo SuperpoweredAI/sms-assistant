@@ -42,7 +42,7 @@ SP_API_KEY_SECRET = ssm.get_parameter(
     WithDecryption=True
 )['Parameter']['Value']
 
-BASE_URL = 'https://api.superpowered.ai/v1'
+BASE_URL = 'https://legacy-api.superpowered.ai/v1'
 HEADERS = urllib3.make_headers(basic_auth=f'{SP_API_KEY_ID}:{SP_API_KEY_SECRET}')
 
 def create_superpowered_model_instance(phone_number: str) -> str:
