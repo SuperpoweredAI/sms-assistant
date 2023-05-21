@@ -1,6 +1,6 @@
 import requests
 
-BASE_URL = 'https://api.superpowered.ai/v1'
+BASE_URL = 'https://legacy-api.superpowered.ai/v1'
 SUPERPOWERED_API_KEY_ID = '<SP API KEY ID>'
 SUPERPOWERED_API_KEY_SECRET = '<SP API KEY SECRET>'
 
