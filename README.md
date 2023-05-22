@@ -60,7 +60,7 @@ aws ssm put-parameter \
     --type SecureString
 ```
 
-**NOTE:** The names of these SSM parameters can change as long as the 
+**NOTE:** The names of these SSM parameters can change as long as the names in the `--parameter-overrides` match.
 
 5. Create a Superpowered model via the [Dashboard](!https://superpowered.ai/dashboard/models) or via the [API](!https://superpowered.ai/docs) and obtain the Superpowered `model_id`. See `create_model_rest.py` for an example of how to create a model via our REST API.
 ß
