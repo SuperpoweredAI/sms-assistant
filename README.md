@@ -1,4 +1,4 @@
-# Superpowered AI SMS Assistant Demo
+# Superpowered AI SMS Assistant Demo (Uses legacy API)
 
 _Superpowered AI is in a free research beta phase. Please join our Discord server for asking questions, giving feedback, talking about ideas, or just to say hey!: https://discord.gg/PD6qE85kch_
 
